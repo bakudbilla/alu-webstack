@@ -1,0 +1,37 @@
+frontend www-http
+        bind *:80
+        mode http
+        timeout client 30s
+        timeout server 30s
+        default_backend web-backend
+
+frontend www-https
+        bind *:443 ssl crt /etc/letsencrypt/live/www.awinpang.tech/www.awinpang.tech.pem
+        mode http
+        timeout client 30s
+        timeout server 30s
+        http-request set-header X-Forwarded-Proto https
+        acl letsencrypt-acl path_beg /.well-known/acme-challenge/
+        use_backend letsencrypt-backend if letsencrypt-acl
+        default_backend web-backend
+
+backend web-backend
+        mode http
+        timeout server 30s
+        timeout connect 5s
+        timeout queue 30s
+        timeout http-request 30s
+        timeout http-keep-alive 30s
+        redirect scheme https unless { ssl_fc }
+        balance roundrobin
+        server 5794-web-01 67.202.57.45:80 check
+        server 5794-web-02 54.160.189.22:80 check
+
+backend letsencrypt-backend
+        mode http
+        timeout server 30s
+        timeout connect 5s
+        timeout queue 30s
+        timeout http-request 30s
+        timeout http-keep-alive 30s
+        server letsencrypt 127.0.0.1:54321
